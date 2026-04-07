@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 
+from config import ModelConfig, RunConfig
+
 
 class TokenChunkDataset(Dataset):
     def __init__(self, token_path: Path, total_tokens: int, context_length: int):
@@ -164,3 +166,28 @@ class TinyGPT(nn.Module):
         # and do a normalization
         x = self.final_ln(x)
         return self.lm_head(x)
+
+
+def model_checkpoint_path(run_config: RunConfig, model_config: ModelConfig) -> Path:
+    return run_config.models / f"{model_config.name}.pt"
+
+
+def load_model(
+    model_path: Path,
+    device: torch.device,
+) -> TinyGPT:
+    """Loads a saved TinyGPT checkpoint and returns it in eval mode."""
+    checkpoint = torch.load(model_path, map_location=device)
+    config = ModelConfig(**checkpoint["config"])
+    model = TinyGPT(
+        vocab_size=checkpoint["vocab_size"],
+        context_length=checkpoint["context_length"],
+        d_model=config.d_model,
+        n_heads=config.n_heads,
+        n_layers=config.n_layers,
+        d_ff=config.d_ff,
+        dropout=config.dropout,
+    ).to(device)
+    model.load_state_dict(checkpoint["model_state"])
+    model.eval()
+    return model
