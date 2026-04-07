@@ -7,6 +7,23 @@ from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
 from config import SHARED_DIR, TokenConfig, TokenizationConfig
 
 
+def _tokenizer_path(tokenization_config: TokenizationConfig) -> Path:
+    return (
+        SHARED_DIR
+        / "tokenizers"
+        / f"tinystories_bpe_metaspace_{tokenization_config.vocab_size}_{tokenization_config.max_train_stories}.json"
+    )
+
+
+def _memmap_path(tokenization_config: TokenizationConfig, input_path: Path) -> Path:
+    split = "valid" if "valid" in input_path.name.lower() else "train"
+    return (
+        SHARED_DIR
+        / "memmaps"
+        / f"{split}_tokens_metaspace_{tokenization_config.max_train_stories}_v{tokenization_config.vocab_size}.bin"
+    )
+
+
 def iter_stories(
     tokenization_config: TokenizationConfig,
     training_file_path: Path,
@@ -52,17 +69,6 @@ def count_tokens(
     return total
 
 
-def _default_memmap_path(
-    tokenization_config: TokenizationConfig, input_path: Path
-) -> Path:
-    split = "valid" if "valid" in input_path.name.lower() else "train"
-    return (
-        SHARED_DIR
-        / "memmaps"
-        / f"{split}_tokens_metaspace_{tokenization_config.max_train_stories}_v{tokenization_config.vocab_size}.bin"
-    )
-
-
 def build_token_memmap(
     tokenization_config: TokenizationConfig,
     token_config: TokenConfig,
@@ -74,8 +80,8 @@ def build_token_memmap(
     """Returns the path of the built token memmap
 
     A memmap is basically like a token stream, but optimized for quick retrieval"""
-    output_path = Path(output_path) if output_path else _default_memmap_path(
-        tokenization_config, path
+    output_path = (
+        Path(output_path) if output_path else _memmap_path(tokenization_config, path)
     )
     expected_bytes = total_tokens * np.dtype(np.uint32).itemsize
 
@@ -133,6 +139,10 @@ def build_tokenizer(
     train_path: Path,
 ) -> Tokenizer:
     """Trains a tokenizer based on the inputted data"""
+    tokenizer_path = _tokenizer_path(tokenization_config)
+    if tokenizer_path.exists():
+        return Tokenizer.from_file(str(tokenizer_path))
+
     # initialize
     tokenizer = Tokenizer(models.BPE(unk_token=token_config.unk))
 
@@ -161,11 +171,6 @@ def build_tokenizer(
         trainer=trainer,
         length=tokenization_config.max_train_stories,
     )
-    SHARED_DIR.mkdir(parents=True, exist_ok=True)
-    tokenizer.save(
-        str(
-            SHARED_DIR
-            / f"tinystories_bpe_metaspace_{tokenization_config.vocab_size}_{tokenization_config.max_train_stories}.json"
-        )
-    )
+    tokenizer_path.parent.mkdir(parents=True, exist_ok=True)
+    tokenizer.save(str(tokenizer_path))
     return tokenizer
