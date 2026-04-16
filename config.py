@@ -13,13 +13,29 @@ else:
     else:
         ROOT = _cwd
 
-# Directory level configuration
 DATA_DIR = ROOT / "data"
-ARTIFACTS_DIR = ROOT / "artifacts"
+LOCAL_ARTIFACTS_DIR = ROOT / "artifacts"
+
+GPU_DIR = Path("/workspace")
+GPU_ARTIFACTS_DIR = GPU_DIR / "artifacts"
+
 COLAB_DIR = Path("/content/drive/MyDrive/courses/242B/HW3")
+COLAB_ARTIFACTS_DIR = COLAB_DIR / "artifacts"
+
+# Now, we figure out where we are
 IS_COLAB = "COLAB_RELEASE_TAG" in os.environ
+IS_RUNPOD = GPU_DIR.exists() and not IS_COLAB
+
+# So, where are we?
 ACTIVE_DATA_DIR = COLAB_DIR if IS_COLAB else DATA_DIR
-ACTIVE_ARTIFACTS_DIR = (COLAB_DIR / "artifacts") if IS_COLAB else ARTIFACTS_DIR
+
+if IS_COLAB:
+    ACTIVE_ARTIFACTS_DIR = COLAB_ARTIFACTS_DIR
+elif IS_RUNPOD:
+    ACTIVE_ARTIFACTS_DIR = GPU_ARTIFACTS_DIR
+else:
+    ACTIVE_ARTIFACTS_DIR = LOCAL_ARTIFACTS_DIR
+
 SHARED_DIR = ACTIVE_ARTIFACTS_DIR / "shared"
 RUN_DIR = ACTIVE_ARTIFACTS_DIR / "runs"
 
