@@ -2,9 +2,9 @@ import argparse
 from pathlib import Path
 
 import torch
+from helpers import apply_lora_to_model
 
 from config import GlobalTrainingConfig, TokenConfig, TokenizationConfig
-from helpers import apply_lora_to_model
 from models import TinyGPT
 from tokenizer import build_tokenizer
 from utils import generate_text
@@ -33,7 +33,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-new-tokens",
         type=int,
-        default=160,
+        default=512,
         help="Maximum number of tokens to generate.",
     )
     parser.add_argument(
