@@ -21,8 +21,8 @@ from pathlib import Path
 
 import torch
 import torch.nn.functional as F
-from helpers import apply_lora_to_model, freeze_non_lora_parameters
-from instruction_dataset import InstructionDataset
+from fine_tuning.helpers import apply_lora_to_model, freeze_non_lora_parameters
+from fine_tuning.instruction_dataset import InstructionDataset
 
 from config import (
     DataConfig,
@@ -69,19 +69,25 @@ def parse_args() -> argparse.Namespace:
         default="auto",
     )
     parser.add_argument("--batch-size", type=int, default=8)
-    parser.add_argument("--learning-rate", type=float, default=2e-4)
+    parser.add_argument("--learning-rate", type=float, default=5e-5)
     parser.add_argument("--weight-decay", type=float, default=0.01)
     parser.add_argument("--warmup-steps", type=int, default=100)
-    parser.add_argument("--max-steps", type=int, default=3_000)
+    parser.add_argument("--max-steps", type=int, default=500)
     parser.add_argument("--checkpoint-every", type=int, default=200)
     parser.add_argument("--max-train-stories", type=int, default=1_000_000)
-    parser.add_argument("--rank", type=int, default=32, help="LoRA rank.")
-    parser.add_argument("--alpha", type=float, default=64.0, help="LoRA scaling factor.")
-    parser.add_argument("--lora-dropout", type=float, default=0.05)
+    parser.add_argument("--rank", type=int, default=8, help="LoRA rank.")
+    parser.add_argument("--alpha", type=float, default=8.0, help="LoRA scaling factor.")
+    parser.add_argument("--lora-dropout", type=float, default=0.1)
+    parser.add_argument(
+        "--target-layers",
+        type=int,
+        default=2,
+        help="Apply LoRA to only the last N transformer blocks (default: 2).",
+    )
     parser.add_argument(
         "--target-ff",
         action="store_true",
-        help="Also apply LoRA to feedforward layers.",
+        help="Also apply LoRA to out_proj and feedforward layers (not recommended).",
     )
     parser.add_argument("--no-amp", action="store_true")
     return parser.parse_args()
@@ -228,6 +234,7 @@ def main() -> None:
         alpha=args.alpha,
         dropout=args.lora_dropout,
         target_ff=args.target_ff,
+        target_layers=args.target_layers,
     )
     model = model.to(device)
     freeze_non_lora_parameters(model)

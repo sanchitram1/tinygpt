@@ -1,5 +1,5 @@
 import torch.nn as nn
-from lora import LoRALinear
+from fine_tuning.lora import LoRALinear
 
 from models import TinyGPT
 
@@ -10,14 +10,26 @@ def apply_lora_to_model(
     alpha: float,
     dropout: float = 0.0,
     target_ff: bool = False,
+    target_layers: int | None = None,
 ) -> TinyGPT:
-    for block in model.blocks:
-        block.qkv = LoRALinear(block.qkv, rank=rank, alpha=alpha, dropout=dropout)
-        block.out_proj = LoRALinear(
-            block.out_proj, rank=rank, alpha=alpha, dropout=dropout
-        )
+    """Apply LoRA to selected layers of the model.
 
+    Args:
+        target_layers: If set, only apply LoRA to the LAST N transformer blocks.
+                       If None (default), apply to all blocks.
+    """
+    blocks = model.blocks
+    if target_layers is not None:
+        blocks = blocks[-target_layers:]
+
+    for block in blocks:
+        block.qkv = LoRALinear(block.qkv, rank=rank, alpha=alpha, dropout=dropout)
+
+        # Only apply to out_proj if target_ff is set (reduced surface area)
         if target_ff:
+            block.out_proj = LoRALinear(
+                block.out_proj, rank=rank, alpha=alpha, dropout=dropout
+            )
             block.ff[0] = LoRALinear(
                 block.ff[0], rank=rank, alpha=alpha, dropout=dropout
             )
@@ -30,6 +42,3 @@ def apply_lora_to_model(
 def freeze_non_lora_parameters(model: nn.Module) -> None:
     for name, param in model.named_parameters():
         param.requires_grad = "lora_" in name
-
-
-def count_trainable_parameters(): ...
