@@ -101,24 +101,72 @@ def infer_theme(story: str) -> str:
     return "everyday life"
 
 
+# Expanded list: sentence-starters and common capitalized function words
+# that are NOT character names in children's stories
+NOT_NAMES = {
+    # Sentence starters / function words (lowercase for matching)
+    "once", "one", "day", "after", "then", "but", "and", "the", "a", "an",
+    "he", "she", "they", "his", "her", "him", "it", "its", "we", "you",
+    "this", "that", "these", "those", "there", "here", "where", "when", "what",
+    "who", "why", "how", "if", "so", "or", "as", "at", "by", "in", "on",
+    "to", "from", "for", "with", "without", "about", "into", "onto", "upon",
+    "all", "every", "each", "some", "any", "no", "not", "now", "then",
+    "just", "only", "also", "even", "still", "again", "too", "very",
+    "suddenly", "finally", "soon", "later", "first", "next", "last",
+    "maybe", "perhaps", "however", "because", "since", "although", "while",
+    "let", "lets", "look", "see", "come", "go", "get", "make", "put", "take",
+    "think", "know", "want", "need", "like", "love", "say", "said", "tell",
+    "ask", "give", "find", "help", "try", "use", "keep", "start", "stop",
+    "begin", "end", "turn", "walk", "run", "jump", "play", "eat", "drink",
+    "sleep", "wake", "sit", "stand", "open", "close", "pick", "choose",
+    "every", "everyone", "everything", "everybody", "something", "anything",
+    "nothing", "someone", "anyone", "nobody", "hello", "goodbye", "please",
+    "thank", "sorry", "okay", "yes", "yeah", "wow", "oh", "ah",
+    "moral", "lesson", "story",
+    # Family (lowercase)
+    "mom", "mommy", "dad", "daddy", "mother", "father", "sister", "brother",
+    "grandma", "grandpa", "grandmother", "grandfather", "uncle", "aunt",
+    "cousin", "baby",
+    # Never names
+    "mr", "mrs", "ms", "miss", "sir", "dr",
+}
+
+def _is_real_name(candidate: str, story: str) -> bool:
+    """A capitalized word is a real name if it appears mid-sentence or 2+ times."""
+    lowered = candidate.lower()
+    if lowered in NOT_NAMES:
+        return False
+    # Must be at least 3 chars
+    if len(candidate) < 3:
+        return False
+    # Count occurrences (case-sensitive for names)
+    count = len(re.findall(rf"\b{re.escape(candidate)}\b", story))
+    if count >= 2:
+        return True
+    # Single occurrence: only valid if NOT at sentence start
+    # Check if it appears mid-sentence (preceded by non-period, non-start)
+    mid_sentence = bool(re.search(rf"[^.!?\n\s]\s+{re.escape(candidate)}\b", story))
+    return mid_sentence
+
+
 def infer_characters(story: str) -> str:
     words = set(_words(story))
     animals = words & ANIMAL_WORDS
-    names = [n for n in NAME_RE.findall(story) if n.lower() not in {
-        "once", "one", "day", "after", "then", "but", "and", "the",
-        "he", "she", "they", "his", "her", "him", "mom", "dad",
-        "mother", "father", "sister", "brother", "grandma", "grandpa",
-    }]
     if animals:
         animal_list = sorted(animals)[:3]
         if len(animal_list) == 1:
             return f"a {animal_list[0]}"
         return f"{', '.join(animal_list[:-1])} and {animal_list[-1]}"
-    if names:
-        name_list = sorted(set(names))[:2]
+
+    # Find real names: capitalized words that pass the _is_real_name check
+    candidates = NAME_RE.findall(story)
+    real_names = sorted(set(n for n in candidates if _is_real_name(n, story)))
+    if real_names:
+        name_list = real_names[:2]
         if len(name_list) == 1:
             return name_list[0]
         return f"{name_list[0]} and {name_list[1]}"
+
     return "the main character"
 
 
