@@ -24,12 +24,11 @@ def apply_lora_to_model(
 
     for block in blocks:
         block.qkv = LoRALinear(block.qkv, rank=rank, alpha=alpha, dropout=dropout)
+        block.out_proj = LoRALinear(
+            block.out_proj, rank=rank, alpha=alpha, dropout=dropout
+        )
 
-        # Only apply to out_proj if target_ff is set (reduced surface area)
         if target_ff:
-            block.out_proj = LoRALinear(
-                block.out_proj, rank=rank, alpha=alpha, dropout=dropout
-            )
             block.ff[0] = LoRALinear(
                 block.ff[0], rank=rank, alpha=alpha, dropout=dropout
             )

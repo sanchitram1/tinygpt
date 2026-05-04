@@ -84,12 +84,27 @@ def load_finetuned_model(
 
     lora_config = checkpoint.get("lora")
     if lora_config:
+        target_layers = lora_config.get("target_layers")
+        if target_layers is None:
+            # Auto-detect from state_dict: count blocks with lora_ keys
+            state = checkpoint["model_state"]
+            lora_blocks = set()
+            for key in state:
+                if key.startswith("blocks.") and "lora_" in key:
+                    block_idx = int(key.split(".")[1])
+                    lora_blocks.add(block_idx)
+            if lora_blocks:
+                n_layers = config.get("n_layers", 6)
+                target_layers = n_layers - min(lora_blocks)
+                print(f"  Auto-detected target_layers={target_layers} (blocks {sorted(lora_blocks)})")
+
         model = apply_lora_to_model(
             model,
             rank=int(lora_config["rank"]),
             alpha=float(lora_config["alpha"]),
             dropout=float(lora_config["dropout"]),
             target_ff=bool(lora_config.get("target_ff", False)),
+            target_layers=target_layers,
         )
 
     model.load_state_dict(checkpoint["model_state"])

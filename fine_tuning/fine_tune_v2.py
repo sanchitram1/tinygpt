@@ -367,6 +367,7 @@ def main() -> None:
                 "alpha": args.alpha,
                 "dropout": args.lora_dropout,
                 "target_ff": args.target_ff,
+                "target_layers": args.target_layers,
             },
             "base_checkpoint": str(args.pretrained_model),
         },
