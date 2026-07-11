@@ -17,3 +17,6 @@ artifacts/
 
 # env file
 .env
+
+# worktrees
+.worktrees
