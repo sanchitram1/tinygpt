@@ -1,0 +1,64 @@
+{
+  "total_cases": 10,
+  "overall_pass_count": 9,
+  "by_evaluator": {
+    "clean_ending": {
+      "applicable_cases": 10,
+      "passed": 10
+    },
+    "entity_confusion": {
+      "applicable_cases": 10,
+      "passed": 9
+    },
+    "output_length": {
+      "applicable_cases": 10,
+      "passed": 10
+    },
+    "repetition": {
+      "applicable_cases": 10,
+      "passed": 10
+    },
+    "required_ending": {
+      "applicable_cases": 1,
+      "passed": 1
+    },
+    "required_lesson": {
+      "applicable_cases": 1,
+      "passed": 1
+    },
+    "required_opening": {
+      "applicable_cases": 2,
+      "passed": 2
+    },
+    "required_terms": {
+      "applicable_cases": 10,
+      "passed": 10
+    },
+    "weird_words": {
+      "applicable_cases": 10,
+      "passed": 10
+    }
+  },
+  "by_category": {
+    "basic-completion": {
+      "total": 2,
+      "overall_pass": 2
+    },
+    "prompt-adherence": {
+      "total": 2,
+      "overall_pass": 2
+    },
+    "tone": {
+      "total": 2,
+      "overall_pass": 2
+    },
+    "structural-constraints": {
+      "total": 2,
+      "overall_pass": 1
+    },
+    "robustness": {
+      "total": 2,
+      "overall_pass": 2
+    }
+  }
+}
