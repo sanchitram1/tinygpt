@@ -4,141 +4,21 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import statistics
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
-WORD_RE = re.compile(r"[A-Za-z][A-Za-z'-]*")
-SENTENCE_RE = re.compile(r"[^.!?]+[.!?]?")
-NAME_RE = re.compile(r"\b[A-Z][a-z]{2,}\b")
-NON_NAME_WORDS = {
-    "After",
-    "As",
-    "But",
-    "Can",
-    "Dad",
-    "Every",
-    "Everyone",
-    "Finally",
-    "Hello",
-    "He",
-    "Her",
-    "His",
-    "I",
-    "Inside",
-    "It",
-    "Let",
-    "Look",
-    "Mom",
-    "Mommy",
-    "Mother",
-    "Okay",
-    "One",
-    "Once",
-    "She",
-    "So",
-    "Suddenly",
-    "That",
-    "Thank",
-    "The",
-    "There",
-    "Then",
-    "They",
-    "This",
-    "We",
-    "What",
-    "When",
-    "Where",
-    "Wow",
-    "Yes",
-    "You",
-}
-FEMALE_PRONOUNS = {"she", "her", "hers"}
-MALE_PRONOUNS = {"he", "him", "his"}
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-
-def _words(text: str) -> list[str]:
-    return [word.lower() for word in WORD_RE.findall(text)]
-
-
-def _bigram_repetition_ratio(text: str) -> float:
-    words = _words(text)
-    if len(words) < 2:
-        return 0.0
-    bigrams = list(zip(words, words[1:]))
-    return 1.0 - (len(set(bigrams)) / len(bigrams))
-
-
-def _trigram_repetition_ratio(text: str) -> float:
-    words = _words(text)
-    if len(words) < 3:
-        return 0.0
-    trigrams = list(zip(words, words[1:], words[2:]))
-    return 1.0 - (len(set(trigrams)) / len(trigrams))
-
-
-def _weird_word_count(text: str) -> int:
-    count = 0
-    for word in _words(text):
-        if "-" in word or len(word) >= 14:
-            count += 1
-        elif re.search(r"[bcdfghjklmnpqrstvwxyz]{5,}", word):
-            count += 1
-    return count
-
-
-def _ends_cleanly(text: str) -> bool:
-    return text.rstrip().endswith((".", "!", "?", '"'))
-
-
-def _sentences(text: str) -> list[str]:
-    return [
-        sentence.strip() for sentence in SENTENCE_RE.findall(text) if sentence.strip()
-    ]
-
-
-def _names(text: str) -> list[str]:
-    names = []
-    for name in NAME_RE.findall(text):
-        if name not in NON_NAME_WORDS:
-            names.append(name)
-    return names
-
-
-def _entity_metrics(text: str) -> dict[str, Any]:
-    names = _names(text)
-    unique_names = sorted(set(names))
-    words = _words(text)
-    female_pronouns = sum(word in FEMALE_PRONOUNS for word in words)
-    male_pronouns = sum(word in MALE_PRONOUNS for word in words)
-    pronoun_mix = int(female_pronouns > 0 and male_pronouns > 0)
-
-    adjacent_name_switches = 0
-    previous_sentence_names: set[str] | None = None
-    for sentence in _sentences(text):
-        sentence_names = set(_names(sentence))
-        if (
-            sentence_names
-            and previous_sentence_names
-            and not (sentence_names & previous_sentence_names)
-        ):
-            adjacent_name_switches += 1
-        if sentence_names:
-            previous_sentence_names = sentence_names
-
-    return {
-        "unique_names": len(unique_names),
-        "names": unique_names,
-        "female_pronouns": female_pronouns,
-        "male_pronouns": male_pronouns,
-        "pronoun_mix": pronoun_mix,
-        "adjacent_name_switches": adjacent_name_switches,
-        "entity_confusion_score": len(unique_names)
-        + pronoun_mix
-        + adjacent_name_switches,
-    }
+from eval_suite.quality_metrics import bigram_repetition_ratio as _bigram_repetition_ratio
+from eval_suite.quality_metrics import ends_cleanly as _ends_cleanly
+from eval_suite.quality_metrics import entity_metrics as _entity_metrics
+from eval_suite.quality_metrics import trigram_repetition_ratio as _trigram_repetition_ratio
+from eval_suite.quality_metrics import weird_word_count as _weird_word_count
+from eval_suite.quality_metrics import words as _words
 
 
 def _summarize_rows(rows: list[dict[str, Any]]) -> dict[str, float | int]:
