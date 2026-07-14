@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import Any, Mapping
 
 import pytest
 from fastapi.testclient import TestClient
 
+# The service package is built independently, while the shared runtime lives
+# at the repository root. Make that source package available to model tests.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from tinygpt_service.config import ServiceSettings
-from tinygpt_service.generator import GenerationResult, GeneratorInfo
+from tinygpt_service.generator import GenerationChunk, GenerationResult, GeneratorInfo
 from tinygpt_service.main import create_app
 
 FAKE_INFO = GeneratorInfo(
@@ -44,6 +50,17 @@ class FakeStoryGenerator:
             stop_reason="eos",
             latency_ms=1.5,
         )
+
+    def stream(
+        self, prompt: str, *, temperature: float, top_k: int, max_new_tokens: int
+    ):
+        result = self.generate(
+            prompt,
+            temperature=temperature,
+            top_k=top_k,
+            max_new_tokens=max_new_tokens,
+        )
+        yield GenerationChunk(delta=result.text, result=result)
 
 
 class FailingGenerator:

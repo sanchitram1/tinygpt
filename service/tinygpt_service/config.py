@@ -36,6 +36,7 @@ class ServiceSettings:
     # Provenance
     service_revision: str = "local"
     bundle_dir: str | None = None
+    device: str = "auto"
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "ServiceSettings":
@@ -75,4 +76,5 @@ class ServiceSettings:
             # K_REVISION is set by Cloud Run
             service_revision=env.get("K_REVISION", defaults.service_revision),
             bundle_dir=env.get("TINYGPT_BUNDLE_DIR") or None,
+            device=env.get("TINYGPT_DEVICE", defaults.device).lower(),
         )

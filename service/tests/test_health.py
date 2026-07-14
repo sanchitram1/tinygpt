@@ -1,4 +1,9 @@
+import pytest
+from fastapi.testclient import TestClient
+
 from conftest import FakeStoryGenerator
+from tinygpt_service.config import ServiceSettings
+from tinygpt_service.main import create_app
 
 
 def test_healthz_ok_without_model(make_client):
@@ -30,3 +35,10 @@ def test_index_serves_chat_page(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "TinyGPT" in response.text
+
+
+def test_default_app_fails_startup_without_bundle():
+    app = create_app(settings=ServiceSettings())
+    with pytest.raises(RuntimeError, match="TINYGPT_BUNDLE_DIR is required"):
+        with TestClient(app):
+            pass

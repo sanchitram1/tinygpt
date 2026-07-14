@@ -42,28 +42,55 @@ form.addEventListener("submit", async (event) => {
   input.disabled = true;
   sendButton.disabled = true;
   const pending = addBubble("writing a story…", "model pending");
+  let modelBubble = null;
 
   try {
-    const response = await fetch("/api/chat", {
+    const response = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, session_id: sessionId }),
     });
-    const body = await response.json();
     if (!response.ok) {
+      const body = await response.json();
       const detail = body?.error?.message || `request failed (${response.status})`;
       pending.remove();
       addBubble(detail, "error");
       return;
     }
+    modelBubble = addBubble("", "model");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let metadata = null;
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+      for (const event of events) {
+        const line = event.split("\n").find((item) => item.startsWith("data: "));
+        if (!line) continue;
+        const item = JSON.parse(line.slice(6));
+        if (item.delta) {
+          pending.remove();
+          modelBubble.textContent += item.delta;
+          log.scrollTop = log.scrollHeight;
+        }
+        if (item.done) metadata = item;
+        if (item.error) throw new Error(item.error.message);
+      }
+      if (done) break;
+    }
     pending.remove();
-    addBubble(body.reply, "model");
-    addMeta(
-      `${body.model_version} · ${body.output_token_count} tokens · ` +
-        `${Math.round(body.latency_ms)} ms`
-    );
+    if (metadata) {
+      addMeta(
+        `${metadata.model_version} · ${metadata.output_token_count} tokens · ` +
+          `${Math.round(metadata.latency_ms)} ms`
+      );
+    }
   } catch (err) {
     pending.remove();
+    if (modelBubble) modelBubble.remove();
     addBubble("network error; please try again", "error");
   } finally {
     input.disabled = false;

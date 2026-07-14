@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import threading
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -31,10 +32,22 @@ def create_app(
     # Fail fast: misconfigured tracing must abort startup, not surface later.
     if trace_sink is None:
         trace_sink = create_trace_sink(settings)
-    if generator is _UNSET:
-        generator = load_generator(settings)
+    load_model_on_startup = generator is _UNSET
+    if load_model_on_startup:
+        generator = None
 
-    app = FastAPI(title="tinygpt-chat", docs_url=None, redoc_url=None)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        if load_model_on_startup:
+            # Keep model construction out of module import so test clients and
+            # tooling can import the app, while real server startup remains
+            # fail-fast for missing or invalid model bundles.
+            app.state.generator = load_generator(app.state.settings)
+        yield
+
+    app = FastAPI(
+        title="tinygpt-chat", docs_url=None, redoc_url=None, lifespan=lifespan
+    )
     app.state.settings = settings
     app.state.generator = generator
     app.state.trace_sink = trace_sink

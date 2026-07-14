@@ -120,3 +120,14 @@ def test_synthetic_flag_propagates(make_client):
     response = client.post("/api/chat", json={"message": "hi", "synthetic": True})
     assert response.json()["synthetic"] is True
     assert sink.records[0]["synthetic"] is True
+
+
+def test_streaming_chat_emits_deltas_and_final_metadata(make_client):
+    generator = FakeStoryGenerator()
+    client = make_client(generator=generator)
+    response = client.post("/api/chat/stream", json={"message": "hi"})
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert '"delta":"Once upon a time, hi"' in response.text
+    assert '"done":true' in response.text
+    assert '"stop_reason":"eos"' in response.text

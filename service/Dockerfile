@@ -15,11 +15,15 @@ WORKDIR /srv
 
 COPY service/pyproject.toml service/README.md /srv/service/
 COPY service/tinygpt_service /srv/service/tinygpt_service
+COPY core /srv/core
 RUN pip install "/srv/service[model,tracing]"
 
-# One verified artifact bundle: checkpoint + config + manifest.json.
-COPY core/artifacts/baseline/ /srv/model-bundle/
+# One verified artifact bundle: checkpoint + tokenizer + manifest.json. Override
+# BUNDLE_SOURCE when the bundle is produced outside the recovered baseline path.
+ARG BUNDLE_SOURCE=model-bundles/xlarge-plus
+COPY ${BUNDLE_SOURCE}/ /srv/model-bundle/
 ENV TINYGPT_BUNDLE_DIR=/srv/model-bundle
+ENV PYTHONPATH=/srv
 
 # Cloud Run injects PORT; default to 8080 for local runs.
 EXPOSE 8080
