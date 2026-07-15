@@ -1,0 +1,26 @@
+# Build context is the repository root (see service/Dockerfile).
+# Keep the image to the service package plus one model artifact bundle.
+.git
+.gitignore
+.worktrees
+.claude
+.venv
+**/__pycache__
+**/.pytest_cache
+.DS_Store
+.env
+.env.*
+
+# Unrelated to serving
+berkeley/
+evals/
+plans/
+tests/
+training/
+service/tests/
+*.ipynb
+
+# Large data; only the baseline artifact bundle is baked into the image
+core/data/
+core/artifacts/*
+!core/artifacts/baseline/

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TinyGPT Stories</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>TinyGPT Stories</h1>
+    <button id="reset" type="button" title="Clear the conversation">Reset</button>
+  </header>
+
+  <main id="chat-log" aria-live="polite"></main>
+
+  <form id="chat-form">
+    <input
+      id="message"
+      name="message"
+      type="text"
+      autocomplete="off"
+      maxlength="2000"
+      placeholder="Start a story… e.g. “Once there was a brave little fox”"
+      required
+    >
+    <button id="send" type="submit">Send</button>
+  </form>
+
+  <footer>
+    Conversation history lives only in this browser tab. TinyGPT is a small
+    story model trained on TinyStories; expect simple tales, not facts.
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
